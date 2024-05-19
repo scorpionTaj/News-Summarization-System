@@ -13,7 +13,7 @@ This Flask web application allows users to analyze articles by providing the art
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-username/article-analysis-web-app.git
+   git clone https://github.com/scorpionTaj/News-Summarization-System.git
    ```
 
 2. Install the required dependencies:
