@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Article Analysis</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+  <div class="container">
+    <h1>Article Analysis</h1>
+    <form method="post">
+      <label for="url">Article URL:</label>
+      <input type="text" id="url" name="url" required>
+      <button type="submit">Analyze</button>
+    </form>
+    <section>
+      {% if result %}
+      <header>
+        <h2>Analysis Result</h2>
+      </header>
+      <article>
+        <p><strong>Title:</strong> {{ result.title }}</p>
+        <p><strong>Authors:</strong> {{ result.authors | join(', ') }}</p>
+        <p><strong>Publish Date:</strong> {{ result.publish_date }}</p>
+        <div style="display: flex; justify-content: center; margin-bottom: 20px;">
+          {% if result.image %}
+          <img src="{{ result.image }}" alt="Article image" style="max-width: 500px; height: auto;">
+          {% else %}
+          <p>No image available</p>
+          {% endif %}
+        </div>
+        <p><strong>Summary:</strong> {{ result.summary }}</p>
+        <p><strong>Sentiment:</strong> {{ result.sentiment }}</p>
+        <a href="data:text/plain;charset=utf-8,
+          Title: {{ result.title | escape }}%0A
+          Authors: {{ result.authors | join(', ') | escape }}%0A
+          Publish Date: {{ result.publish_date | escape }}%0A
+          Image Link: {{ result.image | escape }}%0A
+          Summary: {{ result.summary | escape }}%0A
+          Sentiment: {{ result.sentiment | escape }}%0A
+          Article Link: {{ url | escape }}" download="article.txt" class="download-link">Download Article</a>
+
+      </article>
+      {% elif error %}
+      <p class="error">An error occurred: {{ error }}. Please try again.</p>
+      {% endif %}
+    </section>
+  </div>
+</body>
+
+</html>
