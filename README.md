@@ -28,6 +28,11 @@ A web application that analyzes news articles to provide summaries, sentiment an
 ## Installation
 
 1. Clone this repository
+
+```bash
+git clone https://github.com/scorpionTaj/News-Summarization-System.git
+```
+
 2. Install required packages:
 
 ```bash
@@ -44,10 +49,14 @@ python -m spacy download en_core_web_sm
 
 ```
 DEBUG=False
-SECRET_KEY=your_secret_key
+SECRET_KEY=change_this_to_a_random_secret_key
 LOG_LEVEL=INFO
+LOG_FILE=app.log
 CACHE_TIMEOUT=3600
+MAX_CONTENT_LENGTH=10485760
+REQUEST_TIMEOUT=30
 MAX_REQUESTS_PER_MINUTE=60
+ENABLE_ADVANCED_ANALYTICS=True
 ```
 
 ## Usage
@@ -93,4 +102,4 @@ The application can be configured using environment variables or a `.env` file:
 
 ## License
 
-MIT
+[MIT License](LICENSE)
