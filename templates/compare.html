@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Compare Articles - News Analyzer</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="icon"
+      href="{{ url_for('static', filename='favicon.ico') }}"
+      type="image/x-icon"
+    />
+  </head>
+  <body>
+    <nav class="navbar">
+      <h1>News Analyzer</h1>
+      <div class="nav-links">
+        <a href="{{ url_for('index') }}" class="nav-link"
+          ><i class="fas fa-home"></i> Home</a
+        >
+        <a href="{{ url_for('view_history') }}" class="nav-link"
+          ><i class="fas fa-history"></i> History</a
+        >
+        <a href="{{ url_for('compare_articles') }}" class="nav-link active"
+          ><i class="fas fa-exchange-alt"></i> Compare</a
+        >
+        <button class="theme-toggle" id="themeToggle">
+          <i class="fas fa-moon"></i> <span>Dark Mode</span>
+        </button>
+      </div>
+    </nav>
+
+    <div class="container">
+      <h2><i class="fas fa-exchange-alt"></i> Compare Articles</h2>
+
+      <form id="compareForm" method="post">
+        <div class="grid" style="grid-template-columns: 1fr 1fr">
+          <div class="input-group">
+            <label for="url1">First Article URL:</label>
+            <input
+              type="url"
+              id="url1"
+              name="url1"
+              placeholder="https://example.com/article1"
+              value="{{ url1 if url1 }}"
+            />
+          </div>
+          <div class="input-group">
+            <label for="url2">Second Article URL:</label>
+            <input
+              type="url"
+              id="url2"
+              name="url2"
+              placeholder="https://example.com/article2"
+              value="{{ url2 if url2 }}"
+            />
+          </div>
+        </div>
+        <button type="submit" class="analyze-btn">
+          <i class="fas fa-search"></i> Compare Articles
+        </button>
+      </form>
+
+      <div class="loading" id="loadingIndicator">
+        <div class="loading-spinner"></div>
+        <p class="loading-text">Analyzing articles...</p>
+      </div>
+
+      {% if error1 or error2 %}
+      <div class="error">
+        <i class="fas fa-exclamation-circle"></i>
+        {% if error1 %}Article 1: {{ error1 }}{% endif %} {% if error2 %}{% if
+        error1 %}<br />{% endif %}Article 2: {{ error2 }}{% endif %}
+      </div>
+      {% endif %} {% if result1 or result2 %}
+      <div class="comparison">
+        <!-- First Article -->
+        <div class="comparison-column">
+          {% if result1 %}
+          <div class="card">
+            <h3 class="article-title">{{ result1.title }}</h3>
+            {% if result1.image %}
+            <div class="image-container" style="max-height: 200px">
+              <img src="{{ result1.image }}" alt="Article 1 image" />
+            </div>
+            {% endif %}
+            <div class="article-meta">
+              {% if result1.authors %}
+              <div class="meta-item">
+                <i class="fas fa-user"></i> {{ result1.authors | join(', ') }}
+              </div>
+              {% endif %} {% if result1.publish_date %}
+              <div class="meta-item">
+                <i class="fas fa-calendar"></i> {{ result1.publish_date }}
+              </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Summary</div>
+            <p>{{ result1.summary }}</p>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Sentiment Analysis</div>
+            <div class="sentiment-meter">
+              <div
+                class="sentiment-value {{ result1.sentiment.lower() }}"
+                style="width: {{ 50 + result1.polarity }}%;"
+              ></div>
+            </div>
+            <p>
+              <strong>{{ result1.sentiment }}</strong> sentiment ({{
+              result1.polarity }}%)
+            </p>
+            <p>Subjectivity: {{ result1.subjectivity }}%</p>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Readability</div>
+            <p>{{ result1.readability.readability }}</p>
+            <div class="readability-meter">
+              <div
+                class="readability-value {{ result1.readability.readability.lower().replace(' ', '-') }}"
+                style="width: {{ result1.readability.flesch_reading_ease }}%;"
+              ></div>
+            </div>
+            <p>Reading ease: {{ result1.readability.flesch_reading_ease }}%</p>
+            <p>Grade level: {{ result1.readability.flesch_kincaid_grade }}</p>
+          </div>
+
+          {% if result1.keywords %}
+          <div class="card">
+            <div class="card-title">Keywords</div>
+            <div class="keywords">
+              {% for keyword in result1.keywords %}
+              <span class="keyword">{{ keyword }}</span>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %} {% else %}
+          <div class="card">
+            <p>No data for first article</p>
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- Second Article -->
+        <div class="comparison-column">
+          {% if result2 %}
+          <div class="card">
+            <h3 class="article-title">{{ result2.title }}</h3>
+            {% if result2.image %}
+            <div class="image-container" style="max-height: 200px">
+              <img src="{{ result2.image }}" alt="Article 2 image" />
+            </div>
+            {% endif %}
+            <div class="article-meta">
+              {% if result2.authors %}
+              <div class="meta-item">
+                <i class="fas fa-user"></i> {{ result2.authors | join(', ') }}
+              </div>
+              {% endif %} {% if result2.publish_date %}
+              <div class="meta-item">
+                <i class="fas fa-calendar"></i> {{ result2.publish_date }}
+              </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Summary</div>
+            <p>{{ result2.summary }}</p>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Sentiment Analysis</div>
+            <div class="sentiment-meter">
+              <div
+                class="sentiment-value {{ result2.sentiment.lower() }}"
+                style="width: {{ 50 + result2.polarity }}%;"
+              ></div>
+            </div>
+            <p>
+              <strong>{{ result2.sentiment }}</strong> sentiment ({{
+              result2.polarity }}%)
+            </p>
+            <p>Subjectivity: {{ result2.subjectivity }}%</p>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Readability</div>
+            <p>{{ result2.readability.readability }}</p>
+            <div class="readability-meter">
+              <div
+                class="readability-value {{ result2.readability.readability.lower().replace(' ', '-') }}"
+                style="width: {{ result2.readability.flesch_reading_ease }}%;"
+              ></div>
+            </div>
+            <p>Reading ease: {{ result2.readability.flesch_reading_ease }}%</p>
+            <p>Grade level: {{ result2.readability.flesch_kincaid_grade }}</p>
+          </div>
+
+          {% if result2.keywords %}
+          <div class="card">
+            <div class="card-title">Keywords</div>
+            <div class="keywords">
+              {% for keyword in result2.keywords %}
+              <span class="keyword">{{ keyword }}</span>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %} {% else %}
+          <div class="card">
+            <p>No data for second article</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if result1 and result2 %}
+      <div class="card">
+        <div class="card-title">Overlap Analysis</div>
+        <p><strong>Common Keywords:</strong></p>
+        <div class="keywords">
+          {% if result1.keywords and result2.keywords %} {% set common_keywords
+          = result1.keywords|intersect(result2.keywords) %} {% if
+          common_keywords and common_keywords|length > 0 %} {% for keyword in
+          common_keywords %}
+          <span class="keyword">{{ keyword }}</span>
+          {% endfor %} {% else %}
+          <p>No common keywords found.</p>
+          {% endif %} {% else %}
+          <p>No keywords available for comparison.</p>
+          {% endif %}
+        </div>
+
+        <p>
+          <strong>Sentiment Difference:</strong> {{ (result1.polarity -
+          result2.polarity)|abs|round(1) }}%
+        </p>
+        <p>
+          <strong>Subjectivity Difference:</strong> {{ (result1.subjectivity -
+          result2.subjectivity)|abs|round(1) }}%
+        </p>
+        <p>
+          <strong>Reading Ease Difference:</strong> {{
+          (result1.readability.flesch_reading_ease -
+          result2.readability.flesch_reading_ease)|abs|round(1) }}%
+        </p>
+      </div>
+      {% endif %} {% endif %}
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+  </body>
+</html>

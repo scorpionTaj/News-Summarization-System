@@ -1,46 +1,96 @@
-# Article Analysis Web App
+# News Summarization System
 
-This Flask web application allows users to analyze articles by providing the article URL. It retrieves information such as the title, authors, publish date, summary, sentiment analysis, and associated videos and images.
+A web application that analyzes news articles to provide summaries, sentiment analysis, entity recognition, and visualizations.
 
 ## Features
 
-- Analyze articles by providing the article URL
-- Extract information including title, authors, publish date, and summary
-- Perform sentiment analysis on the article's content
-- Display associated videos and images
+- **Article Summarization**: Automatically generates concise summaries of news articles
+- **Sentiment Analysis**: Determines if an article has a positive, negative, or neutral tone
+- **Named Entity Recognition**: Identifies people, organizations, locations, and other entities
+- **Readability Metrics**: Calculates how easy or difficult the article is to read
+- **Keyword Extraction**: Identifies the main topics and keywords from the article
+- **Word Cloud Generation**: Visual representation of frequent words in the article
+- **Multi-Language Support**: Automatically detects article language and provides translation options
+- **Article Comparison**: Compare two articles side by side to analyze differences
+- **Media Content Extraction**: Extracts videos, Twitter embeds and other media from articles
+- **History Tracking**: Keep a record of previously analyzed articles
+- **Dark/Light Mode**: Adjustable visual theme for comfortable reading
+
+## Recent Updates
+
+- **Language Auto-Detection**: System now automatically detects the language of articles
+- **Enhanced Translation**: Improved translation between multiple languages with better source language handling
+- **Robust Error Handling**: Better error handling for API requests and content processing
+- **Input Sanitization**: Improved security with comprehensive input validation
+- **Rate Limiting**: Protection against excessive requests
+- **Caching System**: Disk-based caching with TTL for better performance
 
 ## Installation
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/scorpionTaj/News-Summarization-System.git
-   ```
+1. Clone this repository
+2. Install required packages:
 
-2. Install the required dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
+```bash
+pip install -r requirements.txt
+```
 
-3. Run the Flask application:
-   ```bash
-   python app.py
-   ```
+3. Download spaCy model:
+
+```bash
+python -m spacy download en_core_web_sm
+```
+
+4. Configure environment variables by creating a `.env` file:
+
+```
+DEBUG=False
+SECRET_KEY=your_secret_key
+LOG_LEVEL=INFO
+CACHE_TIMEOUT=3600
+MAX_REQUESTS_PER_MINUTE=60
+```
 
 ## Usage
 
-1. Access the web application by navigating to `http://localhost:5000/` in your web browser.
-2. Enter the URL of the article you want to analyze in the provided input field.
-3. Click the "Analyze" button to perform the analysis.
-4. View the analysis results including the article information, sentiment analysis, and associated videos and images.
+Run the application:
 
-## Technologies Used
+```bash
+python main.py
+```
 
-- Python
-- Flask
-- NLTK (Natural Language Toolkit)
-- TextBlob
-- Newspaper3k
+Then open your browser and navigate to `http://localhost:5000`
+
+## API Endpoints
+
+- **`/analyze`**: POST endpoint for asynchronous article analysis
+- **`/translate`**: POST endpoint for content translation
+- **`/history`**: GET endpoint to view analysis history
+- **`/compare`**: GET/POST endpoint to compare articles
+
+## Configuration Options
+
+The application can be configured using environment variables or a `.env` file:
+
+- `DEBUG`: Enable debug mode (True/False)
+- `SECRET_KEY`: Secret key for Flask session
+- `LOG_LEVEL`: Logging level (INFO, DEBUG, etc.)
+- `CACHE_TIMEOUT`: Cache timeout in seconds
+- `MAX_CONTENT_LENGTH`: Maximum content length in bytes
+- `MAX_REQUESTS_PER_MINUTE`: Rate limiting threshold
+- `REQUEST_TIMEOUT`: Timeout for external requests in seconds
+
+## Dependencies
+
+- Flask - Web framework
+- NLTK - Natural Language Processing
+- TextBlob - Sentiment analysis
+- newspaper3k - Article extraction
+- spaCy - Named entity recognition
+- deep-translator - Translation services
+- wordcloud - Word cloud generation
+- langdetect - Language detection
+- pycountry - Language code mapping
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT

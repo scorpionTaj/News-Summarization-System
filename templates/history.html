@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Analysis History - News Analyzer</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="icon"
+      href="{{ url_for('static', filename='favicon.ico') }}"
+      type="image/x-icon"
+    />
+  </head>
+  <body>
+    <nav class="navbar">
+      <h1>News Analyzer</h1>
+      <div class="nav-links">
+        <a href="{{ url_for('index') }}" class="nav-link"
+          ><i class="fas fa-home"></i> Home</a
+        >
+        <a href="{{ url_for('view_history') }}" class="nav-link active"
+          ><i class="fas fa-history"></i> History</a
+        >
+        <a href="{{ url_for('compare_articles') }}" class="nav-link"
+          ><i class="fas fa-exchange-alt"></i> Compare</a
+        >
+        <button class="theme-toggle" id="themeToggle">
+          <i class="fas fa-moon"></i> <span>Dark Mode</span>
+        </button>
+      </div>
+    </nav>
+
+    <div class="container">
+      <h2><i class="fas fa-history"></i> Analysis History</h2>
+
+      {% if history %}
+      <div class="history-container">
+        {% for item in history %}
+        <div class="card history-item">
+          <div class="history-item-header">
+            <h3>{{ item.title }}</h3>
+            <span class="history-item-date">{{ item.processed_time }}</span>
+          </div>
+
+          <div class="article-meta">
+            {% if item.authors %}
+            <div class="meta-item">
+              <i class="fas fa-user"></i> {{ item.authors | join(', ') }}
+            </div>
+            {% endif %} {% if item.publish_date %}
+            <div class="meta-item">
+              <i class="fas fa-calendar"></i> {{ item.publish_date }}
+            </div>
+            {% endif %}
+            <div class="meta-item">
+              <i class="fas fa-clock"></i> {{ item.reading_time }} read
+            </div>
+          </div>
+
+          <div class="sentiment-section">
+            <div class="sentiment-meter">
+              <div
+                class="sentiment-value {{ item.sentiment.lower() }}"
+                style="width: {{ 50 + item.polarity }}%;"
+              ></div>
+            </div>
+            <p>
+              <strong>{{ item.sentiment }}</strong> sentiment ({{ item.polarity
+              }}%)
+            </p>
+          </div>
+
+          {% if item.keywords %}
+          <div class="keywords">
+            {% for keyword in item.keywords[:5] %}
+            <span class="keyword">{{ keyword }}</span>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          <div class="actions">
+            <a
+              href="{{ url_for('index') }}?url={{ item.url | urlencode }}"
+              class="download-link"
+            >
+              <i class="fas fa-sync"></i> Reanalyze
+            </a>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="card">
+        <p>No history found. Analyze some articles to see them here.</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+  </body>
+</html>

@@ -1,0 +1,6 @@
+User-agent: *
+Disallow: /analyze
+Disallow: /translate
+Allow: /
+
+Sitemap: https://yourdomain.com/sitemap.xml
