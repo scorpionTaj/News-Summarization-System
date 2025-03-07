@@ -41,10 +41,8 @@ from PIL import Image
 from langdetect import detect, LangDetectException
 import pycountry
 
-# Load environment variables from .env file if present
 load_dotenv()
 
-# Configure logging with more detailed format
 logging.basicConfig(
     level=logging.getLevelName(os.environ.get("LOG_LEVEL", "INFO")),
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s - [%(filename)s:%(lineno)d]",
@@ -55,11 +53,9 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Create necessary directories
 os.makedirs("history", exist_ok=True)
 os.makedirs("cache", exist_ok=True)
 
-# NLTK Resources Management
 NLTK_RESOURCES = [
     "tokenizers/punkt",
     "taggers/averaged_perceptron_tagger",
@@ -83,7 +79,6 @@ def setup_nltk():
         logger.info(f"Downloading NLTK resources: {', '.join(missing_resources)}")
         for resource in missing_resources:
             try:
-                # Extract component and package name
                 package = resource.split("/")[0]
                 nltk.download(package)
             except Exception as e:
@@ -92,10 +87,8 @@ def setup_nltk():
         logger.info("All NLTK resources already available")
 
 
-# Setup NLTK resources
 setup_nltk()
 
-# Load spaCy model
 try:
     nlp = spacy.load("en_core_web_sm")
     logger.info("Loaded spaCy model")
@@ -108,36 +101,29 @@ except OSError:
         logger.error(f"Failed to load spaCy model: {e}")
         raise
 
-# Configuration
-MAX_CONTENT_LENGTH = int(os.environ.get("MAX_CONTENT_LENGTH", 10 * 1024 * 1024))  # 10MB
-CACHE_TIMEOUT = int(os.environ.get("CACHE_TIMEOUT", 3600))  # 1 hour
-REQUEST_TIMEOUT = int(os.environ.get("REQUEST_TIMEOUT", 30))  # 30 seconds
+MAX_CONTENT_LENGTH = int(os.environ.get("MAX_CONTENT_LENGTH", 10 * 1024 * 1024))
+CACHE_TIMEOUT = int(os.environ.get("CACHE_TIMEOUT", 3600))
+REQUEST_TIMEOUT = int(os.environ.get("REQUEST_TIMEOUT", 30))
 MAX_REQUESTS_PER_MINUTE = int(os.environ.get("MAX_REQUESTS_PER_MINUTE", 60))
 
-# Create and configure Flask application
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", os.urandom(24))
 app.config["MAX_CONTENT_LENGTH"] = MAX_CONTENT_LENGTH
 
-# Add ProxyFix middleware to handle reverse proxy headers correctly
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
-# Rate limiting implementation
 request_history = {}
 
 
 def is_rate_limited(ip_address):
-    """Check if the IP address has exceeded rate limits"""
     current_time = time.time()
     if ip_address not in request_history:
         request_history[ip_address] = []
 
-    # Remove requests older than 60 seconds
     request_history[ip_address] = [
         t for t in request_history[ip_address] if current_time - t < 60
     ]
 
-    # Check if under the limit
     if len(request_history[ip_address]) < MAX_REQUESTS_PER_MINUTE:
         request_history[ip_address].append(current_time)
         return False
@@ -147,8 +133,6 @@ def is_rate_limited(ip_address):
 
 @app.before_request
 def check_rate_limit():
-    """Apply rate limiting before processing requests"""
-    # Skip for local development
     if request.remote_addr == "127.0.0.1" or request.remote_addr.startswith("192.168."):
         return
 
@@ -164,29 +148,15 @@ def intersect_filter(list1, list2):
     return [item for item in list1 if item in list2]
 
 
-# Enhanced caching mechanism with TTL support
 def disk_cache(dirname, ttl=CACHE_TIMEOUT):
-    """
-    Decorator for disk-based caching of function results
-
-    Args:
-        dirname: Directory to store cache files
-        ttl: Time to live in seconds
-
-    Returns:
-        Cached function result or new calculation
-    """
-
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
-            # Create a unique key based on function name and arguments
             key = f"{func.__name__}_{hashlib.md5(str(args).encode() + str(kwargs).encode()).hexdigest()}"
             cache_file = os.path.join(dirname, f"{key}.json")
 
             try:
                 if os.path.exists(cache_file):
-                    # Check if cache entry is still valid
                     file_age = time.time() - os.path.getmtime(cache_file)
                     if file_age < ttl:
                         with open(cache_file, "r") as f:
@@ -197,7 +167,6 @@ def disk_cache(dirname, ttl=CACHE_TIMEOUT):
             except Exception as e:
                 logger.warning(f"Cache read error: {e}")
 
-            # Call the function and cache the result
             result = func(*args, **kwargs)
 
             try:
@@ -214,40 +183,18 @@ def disk_cache(dirname, ttl=CACHE_TIMEOUT):
 
 
 def validate_url(url):
-    """
-    Validate if the URL is properly formed and safe
-
-    Args:
-        url: URL string to validate
-
-    Returns:
-        bool: True if valid, False otherwise
-    """
-    # Basic URL validation
     if not validators.url(url):
         return False
 
-    # Parse URL to check components
     parsed = urlparse(url)
 
-    # Check for allowed protocols
     if parsed.scheme not in ["http", "https"]:
         return False
 
-    # Additional security checks can be added here
     return True
 
 
 def sanitize_input(text):
-    """
-    Sanitize user input to prevent XSS attacks
-
-    Args:
-        text: User input text
-
-    Returns:
-        str: Sanitized text or empty string if None
-    """
     if text is None:
         return ""
     return bleach.clean(text)
@@ -255,15 +202,12 @@ def sanitize_input(text):
 
 def generate_wordcloud(text):
     try:
-        # Clean text by removing punctuation and converting to lowercase
         text = re.sub(r"[^\w\s]", "", text.lower())
 
-        # Check if there's enough content
         if len(text.split()) < 3:
             logger.warning("Text too short for wordcloud generation")
             return None
 
-        # Generate the wordcloud
         wordcloud = WordCloud(
             width=800,
             height=400,
@@ -273,7 +217,6 @@ def generate_wordcloud(text):
             contour_width=3,
         ).generate(text)
 
-        # Save the wordcloud as an image
         img_data = BytesIO()
         plt.figure(figsize=(10, 5))
         plt.imshow(wordcloud, interpolation="bilinear")
@@ -282,7 +225,6 @@ def generate_wordcloud(text):
         plt.savefig(img_data, format="png", bbox_inches="tight")
         plt.close()
 
-        # Return base64 encoded image
         img_data.seek(0)
         return base64.b64encode(img_data.getvalue()).decode()
     except Exception as e:
@@ -292,18 +234,15 @@ def generate_wordcloud(text):
 
 def extract_named_entities(text):
     try:
-        # Process text with spaCy
-        doc = nlp(text[:100000])  # Limit text length for performance
+        doc = nlp(text[:100000])
         entities = {}
 
-        # Extract and categorize named entities
         for ent in doc.ents:
             if ent.label_ not in entities:
                 entities[ent.label_] = []
             if ent.text not in entities[ent.label_]:
                 entities[ent.label_].append(ent.text)
 
-        # Format entities for display
         formatted_entities = {}
         entity_mapping = {
             "PERSON": "People",
@@ -327,13 +266,11 @@ def extract_named_entities(text):
 
 def calculate_readability(text):
     try:
-        # Calculate readability metrics
         metrics = {
             "flesch_reading_ease": flesch_reading_ease(text),
             "flesch_kincaid_grade": flesch_kincaid_grade(text),
         }
 
-        # Map score to readability level
         readability_levels = [
             (90, "Very Easy"),
             (80, "Easy"),
@@ -358,29 +295,17 @@ def calculate_readability(text):
 
 
 def detect_language(text):
-    """
-    Detect the language of the provided text
-
-    Args:
-        text: Text to analyze
-
-    Returns:
-        tuple: (language_code, language_name)
-    """
     try:
         if not text or len(text.strip()) < 10:
             return "en", "English"
 
-        # Get sample text for detection (first 1000 chars)
         sample = text[:1000]
         lang_code = detect(sample)
 
-        # Try to get full language name
         try:
             language = pycountry.languages.get(alpha_2=lang_code)
             language_name = language.name if language else lang_code
         except (AttributeError, KeyError):
-            # Fallback for languages not in pycountry
             language_name = {
                 "ar": "Arabic",
                 "zh-cn": "Chinese",
@@ -400,10 +325,10 @@ def detect_language(text):
         return lang_code, language_name
     except LangDetectException as e:
         logger.warning(f"Language detection error: {e}")
-        return "en", "English"  # Default to English on error
+        return "en", "English"
     except Exception as e:
         logger.error(f"Unexpected error in language detection: {e}", exc_info=True)
-        return "en", "English"  # Default to English on error
+        return "en", "English"
 
 
 def translate_text(text, target_language="en", source_language=None):
@@ -419,22 +344,17 @@ def translate_text(text, target_language="en", source_language=None):
         str: Translated text
     """
     try:
-        # If target is same as source or English text to English target, return original
         if target_language == source_language:
             return text
 
-        # Limit text length to prevent API issues
         limited_text = text[:3000] if len(text) > 3000 else text
 
-        # Auto-detect source language if not specified
         if not source_language:
             source_language, _ = detect_language(text)
 
-        # If target is same as detected source, return original
         if target_language == source_language:
             return text
 
-        # Use specific source language instead of "auto" for better results
         translator = GoogleTranslator(source=source_language, target=target_language)
         result = translator.translate(limited_text)
         return result
@@ -444,15 +364,6 @@ def translate_text(text, target_language="en", source_language=None):
 
 
 def extract_media_content(html_content):
-    """
-    Extract video and media content from article HTML
-
-    Args:
-        html_content: HTML content of the article
-
-    Returns:
-        dict: Extracted media content
-    """
     try:
         videos = []
         video_patterns = [
@@ -462,12 +373,10 @@ def extract_media_content(html_content):
             r'<source[^>]*src=[\'"](https?://[^\'"]+\.(?:mp4|webm|ogg))[\'"][^>]*>',
         ]
 
-        # Extract videos using regular expressions
         for pattern in video_patterns:
             matches = re.findall(pattern, html_content)
             videos.extend(matches)
 
-        # Check for Twitter embeds
         twitter_embeds = re.findall(
             r'<blockquote class="twitter-tweet"[^>]*>', html_content
         )
@@ -481,44 +390,28 @@ def extract_media_content(html_content):
 
 @disk_cache("cache")
 def analyze_article(url):
-    """
-    Analyze an article from a URL
-
-    Args:
-        url: URL of the article to analyze
-
-    Returns:
-        tuple: (result dict, error message)
-    """
     try:
         start_time = time.time()
         logger.info(f"Analyzing article: {url}")
 
-        # Validate URL
         if not validate_url(url):
             return None, "Invalid URL. Please check the format and try again."
 
-        # Download and parse article
         article = Article(url)
         article.download()
 
-        # Extract HTML content and media
         html_content = article.html
         media_content = extract_media_content(html_content)
 
-        # Parse article content
         article.parse()
         article.nlp()
 
-        # Detect language
         article_lang_code, article_lang_name = detect_language(article.text)
 
-        # Sentiment analysis
         analysis = TextBlob(article.text)
         polarity = analysis.sentiment.polarity
         subjectivity = analysis.sentiment.subjectivity
 
-        # Determine overall sentiment
         if polarity > 0.15:
             sentiment = "Positive"
         elif polarity < -0.15:
@@ -526,15 +419,12 @@ def analyze_article(url):
         else:
             sentiment = "Neutral"
 
-        # Extract keywords
         keywords = article.keywords if hasattr(article, "keywords") else []
 
-        # Generate visualizations and extract entities
         wordcloud_img = generate_wordcloud(article.text)
         entities = extract_named_entities(article.text)
         readability = calculate_readability(article.text)
 
-        # Collect images
         images = []
         if article.top_image:
             images.append(article.top_image)
@@ -544,10 +434,8 @@ def analyze_article(url):
                 if img not in images and len(images) < 5:
                     images.append(img)
 
-        # Count paragraphs
         paragraphs = len(re.split(r"\n\n+", article.text))
 
-        # Assemble result dictionary
         result = {
             "title": article.title,
             "authors": article.authors,
@@ -579,10 +467,8 @@ def analyze_article(url):
             "language_name": article_lang_name,
         }
 
-        # Save to history
         save_to_history(result)
 
-        # Log processing time
         process_time = time.time() - start_time
         logger.info(f"Processed article in {process_time:.2f} seconds")
 
@@ -605,7 +491,6 @@ def analyze_article(url):
 
 
 def save_to_history(result):
-    """Save analysis result to history"""
     try:
         history_file = os.path.join("history", f"{int(time.time())}.json")
         with open(history_file, "w") as f:
@@ -621,7 +506,6 @@ def save_to_history(result):
 
 @app.route("/", methods=["GET", "POST"])
 def index():
-    """Home page and article analysis endpoint"""
     result = None
     error = None
     url = None
@@ -635,12 +519,10 @@ def index():
 
 @app.route("/analyze", methods=["POST"])
 def analyze_ajax():
-    """API endpoint for asynchronous article analysis"""
     url = sanitize_input(request.json.get("url", ""))
     if not url:
         return jsonify({"error": "URL is required"}), 400
 
-    # Validate URL format
     if not validate_url(url):
         return jsonify({"error": "Invalid URL format"}), 400
 
@@ -653,8 +535,6 @@ def analyze_ajax():
 
 @app.route("/translate", methods=["POST"])
 def translate_content():
-    """API endpoint for text translation"""
-    # First check if the request contains JSON data
     if not request.is_json:
         logger.warning("Translation request without JSON data")
         return jsonify({"error": "Invalid request format - JSON required"}), 400
@@ -664,18 +544,15 @@ def translate_content():
         logger.warning("Empty JSON data in translation request")
         return jsonify({"error": "Invalid JSON data"}), 400
 
-    # Get parameters from request with safe defaults
     text = data.get("text", "")
     target = data.get("target", "en")
     source = data.get("source")
 
-    # Sanitize inputs after ensuring they exist
     target = sanitize_input(target)
 
     if not text:
         return jsonify({"error": "Text is required"}), 400
 
-    # Detect source language if not provided
     if not source:
         source, source_name = detect_language(text)
     else:
